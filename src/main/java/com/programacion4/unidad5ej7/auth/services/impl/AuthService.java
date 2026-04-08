@@ -36,9 +36,9 @@ public class AuthService implements IAuthService {
 	private final JwtService jwtService;
 	private final JwtProperties jwtProperties;
 
-
 	/**
-	 * Registro: rechaza username duplicado, codifica la contraseña y guarda el usuario con rol por defecto.
+	 * Registro: rechaza username duplicado, codifica la contraseña y guarda el
+	 * usuario con rol por defecto.
 	 */
 	@Transactional
 	@Override
@@ -55,33 +55,53 @@ public class AuthService implements IAuthService {
 	}
 
 	/**
-	 * Login: el {@link AuthenticationManager} valida credenciales; si son correctas se emite un JWT con los
+	 * Login: el {@link AuthenticationManager} valida credenciales; si son correctas
+	 * se emite un JWT con los
 	 * mismos nombres de rol que {@link UserDetails#getAuthorities()}.
 	 */
 	@Override
 	public AuthResponseDto login(LoginRequestDto request) {
 		try {
-			// Encapsular la autenticación en un try-catch para manejar el caso de credenciales inválidas
-			// Si las credenciales son inválidas, se lanza una excepción de tipo InvalidCredentialsException
-			Authentication authentication = authenticationManager.authenticate(
-				UsernamePasswordAuthenticationToken.unauthenticated(request.username(), request.password())
-			);
 
-			// Obtener el usuario autenticado
+			Authentication authentication = authenticationManager.authenticate(
+					UsernamePasswordAuthenticationToken.unauthenticated(
+							request.username(),
+							request.password()));
+
 			UserDetails principal = (UserDetails) authentication.getPrincipal();
 
-			// Obtener los roles del usuario
-			var roles = principal.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
+			// 🔥 Generar los dos tokens
+			String accessToken = jwtService.generateAccessToken(principal.getUsername());
+			String refreshToken = jwtService.generateRefreshToken(principal.getUsername());
 
-			// Generar el token JWT
-			String accessToken = jwtService.generateToken(principal.getUsername(), roles);
+			return new AuthResponseDto(
+					accessToken,
+					refreshToken,
+					TOKEN_TYPE_BEARER);
 
-			// Devolver el token JWT
-			return new AuthResponseDto(accessToken, TOKEN_TYPE_BEARER, jwtProperties.expirationMs());
-
-			// Si las credenciales son inválidas, se lanza una excepción de tipo InvalidCredentialsException
 		} catch (BadCredentialsException e) {
 			throw new InvalidCredentialsException();
 		}
+	}
+
+	@Override
+	public AuthResponseDto refresh(String refreshToken) {
+
+		// 1. Verificar que el token sea válido
+		var usernameOpt = jwtService.extractUsername(refreshToken);
+
+		if (usernameOpt.isEmpty() || !jwtService.isRefreshToken(refreshToken)) {
+			throw new InvalidCredentialsException();
+		}
+
+		String username = usernameOpt.get();
+
+		// 2. Generar nuevo access token
+		String newAccessToken = jwtService.generateAccessToken(username);
+
+		return new AuthResponseDto(
+				newAccessToken,
+				refreshToken, // se devuelve el mismo refresh
+				"Bearer");
 	}
 }

@@ -2,10 +2,14 @@ package com.programacion4.unidad5ej7.auth.jwt;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "app.jwt")
+
+@ConfigurationProperties(prefix = "jwt")
 public record JwtProperties(
-    String secret, 
-    long expirationMs, 
-    String algorithm
-) {
-}
+
+        String secret,
+        String algorithm,
+
+        long accessTokenExpiration,
+        long refreshTokenExpiration
+
+) {}

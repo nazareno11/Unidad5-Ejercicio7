@@ -1,6 +1,7 @@
 package com.programacion4.unidad5ej7.auth.controllers;
 
 import com.programacion4.unidad5ej7.auth.dtos.request.LoginRequestDto;
+import com.programacion4.unidad5ej7.auth.dtos.request.RefreshTokenRequestDto;
 import com.programacion4.unidad5ej7.auth.dtos.request.RegisterRequestDto;
 import com.programacion4.unidad5ej7.auth.dtos.response.AuthResponseDto;
 import com.programacion4.unidad5ej7.auth.services.impl.AuthService;
@@ -24,9 +25,12 @@ public class AuthController {
 	private final IAuthService authService;
 
 	/**
-	 * Registro HTTP: {@code @Valid} dispara validación Bean Validation antes del servicio; {@link AuthService#register}
-	 * persiste el usuario codificado o propaga {@code UserAlreadyExistsException} (409) vía {@code GlobalExceptionHandler}.
-	 * No se devuelve contraseña ni entidad interna: solo confirmación en {@link BaseResponse}.
+	 * Registro HTTP: {@code @Valid} dispara validación Bean Validation antes del
+	 * servicio; {@link AuthService#register}
+	 * persiste el usuario codificado o propaga {@code UserAlreadyExistsException}
+	 * (409) vía {@code GlobalExceptionHandler}.
+	 * No se devuelve contraseña ni entidad interna: solo confirmación en
+	 * {@link BaseResponse}.
 	 */
 	@PostMapping("/register")
 	public ResponseEntity<BaseResponse<Void>> register(@Valid @RequestBody RegisterRequestDto request) {
@@ -36,12 +40,19 @@ public class AuthController {
 	}
 
 	/**
-	 * Login HTTP: validación del body, luego {@link AuthService#login} usa el {@code AuthenticationManager} y emite el JWT
-	 * dentro de {@link AuthResponse}; credenciales inválidas se traducen a 401 sin detallar la causa concreta.
+	 * Login HTTP: validación del body, luego {@link AuthService#login} usa el
+	 * {@code AuthenticationManager} y emite el JWT
+	 * dentro de {@link AuthResponse}; credenciales inválidas se traducen a 401 sin
+	 * detallar la causa concreta.
 	 */
 	@PostMapping("/login")
 	public ResponseEntity<BaseResponse<AuthResponseDto>> login(@Valid @RequestBody LoginRequestDto request) {
 		AuthResponseDto body = authService.login(request);
 		return ResponseEntity.ok(BaseResponse.ok(body, "Autenticación correcta"));
+	}
+
+	@PostMapping("/refresh")
+	public AuthResponseDto refresh(@RequestBody RefreshTokenRequestDto request) {
+		return authService.refresh(request.refreshToken());
 	}
 }
